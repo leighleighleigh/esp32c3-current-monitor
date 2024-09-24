@@ -1,5 +1,8 @@
 # esp32c3-current-monitor
 
+![image psd](https://github.com/user-attachments/assets/18972853-5c9f-4027-b14e-49f30249fab9)
+
+
 ```shell
 nix-shell
 cargo run --release
