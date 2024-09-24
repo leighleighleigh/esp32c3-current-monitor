@@ -4,9 +4,13 @@
 nix-shell
 cargo run --release
 # wait for flashing to complete...
-# serial output, time, current shunt voltage, bus voltage.
+ 
+# Press GPIO0 (BOOT BTN) to cycle averaging mode between 1,4,16,64,128,256,512,1024 samples. Reset to go to 1x.
+  
 # current uA = current shunt mV * 100 
 # 8mV == 800uA == 0.8mA
+ 
+# serial output, time, current shunt voltage, bus voltage.
 Init!
 2669876 us, 0 mV, 0 mV
 2802594 us, 0 mV, 0 mV
@@ -23,3 +27,5 @@ Init!
 4266799 us, 0 mV, 0 mV
 4399605 us, 0 mV, 0 mV
 ```
+
+
