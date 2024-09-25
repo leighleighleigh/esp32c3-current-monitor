@@ -1,6 +1,8 @@
 # esp32c3-current-monitor
 
-![image psd](https://github.com/user-attachments/assets/18972853-5c9f-4027-b14e-49f30249fab9)
+| Breadboard Overview | Demo GIF |
+| ------------------- | -------- |
+| <img src="https://github.com/user-attachments/assets/18972853-5c9f-4027-b14e-49f30249fab9" style="width:450px;" /> | <img src="https://github.com/user-attachments/assets/26fecbc9-8c3e-4ae9-aef0-dbb88c79499a" style="width:auto;" /> |
 
 
 ```shell
