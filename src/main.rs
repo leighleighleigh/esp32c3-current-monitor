@@ -68,6 +68,10 @@ use ssd1306_i2c::{prelude::*, Builder}; // was use sh1106:: ...
 //    }
 //}
 
+fn average(numbers: &[i32]) -> f32 {
+    numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
+}
+
 #[main]
 async fn main(spawner: Spawner) {
     esp_println::println!("Init!");
@@ -252,6 +256,8 @@ async fn main(spawner: Spawner) {
     let mut busvolt: Vec<i32> = vec![0; 128];
     let mut shuntvolt: Vec<i32> = vec![0; 128];
 
+    let mut avg_shuntvolt : f32 = 0.0;
+
     let mut max_busvolt = 0;
     let mut max_shuntvolt = 0;
     let mut min_busvolt = 0;
@@ -260,7 +266,7 @@ async fn main(spawner: Spawner) {
     let mut avg_mode = AveragingMode::Samples1;
 
     loop {
-        Timer::after_millis(100).await;
+        Timer::after_millis(10).await;
 
         // if button is pressed, clear the vecs
         if mode_pin.is_low() {
@@ -268,6 +274,7 @@ async fn main(spawner: Spawner) {
             shuntvolt = vec![0; 128];
             // change sampling mode
             avg_mode = next_mode(avg_mode);
+            esp_println::println!("mode: {:?}", avg_mode);
             ina.set_averaging_mode(avg_mode).unwrap();
             Timer::after_millis(500).await;
         }
@@ -279,10 +286,11 @@ async fn main(spawner: Spawner) {
         match (shunt_voltage, bus_voltage) {
             (Ok(shunt_voltage), Ok(bus_voltage)) => {
                 esp_println::println!(
-                    "{} us, {} mV, {} mV",
+                    "{} us, {} mV, {} mV, {:.3} mV",
                     sampling_time,
                     bus_voltage.milli_volts(),
-                    shunt_voltage.milli_volts()
+                    shunt_voltage.milli_volts(),
+                    avg_shuntvolt,
                 );
 
 
@@ -297,6 +305,9 @@ async fn main(spawner: Spawner) {
                 max_shuntvolt = shuntvolt.iter().cloned().fold(0, i32::max);
                 min_busvolt = busvolt.iter().cloned().fold(i32::MAX, i32::min);
                 min_shuntvolt = shuntvolt.iter().cloned().fold(i32::MAX, i32::min);
+
+                // update avg_shuntvolt
+                avg_shuntvolt = average(&shuntvolt) / 1000.0;
 
                 display.clear();
                 // display.fill_solid(&Rectangle::from(display.bounding_box()), BinaryColor::On).unwrap();
@@ -439,10 +450,12 @@ async fn main(spawner: Spawner) {
 
             }
             (Err(e), _) => {
+                Timer::after_millis(100).await;
                 log::error!("Error reading shunt voltage: {:?}", e);
                 continue;
             }
             (_, Err(e)) => {
+                Timer::after_millis(100).await;
                 log::error!("Error reading bus voltage: {:?}", e);
                 continue;
             }
