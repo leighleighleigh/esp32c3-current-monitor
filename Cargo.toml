@@ -2,7 +2,7 @@
 name = "esp32c3-current-monitor"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.67.0"
+rust-version = "1.80.0"
 
 [dependencies]
 critical-section = "1.1.2"
@@ -17,7 +17,7 @@ embassy-sync = "0.6.0"
 embassy-time = { version = "0.3.1", features = [ "generic-queue-8" ] }
 embassy-time-driver = { version = "0.1.0", features = ["tick-hz-1_000_000"] } # USE WITH TIMG0
 
-esp-backtrace = { version = "0.14.0", default-features = false, features = [
+esp-backtrace = { version = "0.14.2", default-features = false, features = [
     "esp32c3",
     "panic-handler",
     "exception-handler",
@@ -25,20 +25,16 @@ esp-backtrace = { version = "0.14.0", default-features = false, features = [
     "halt-cores",
 ] }
 
-esp-println = { version = "0.11.0", features = [ "esp32c3", "auto", "log"], default-features = false}
+esp-println = { version = "0.12.0", features = [ "esp32c3", "auto", "log"], default-features = false}
 
 # NEW on 2024-06-16
-esp-hal = { version = "0.20.1", features = [
+esp-hal = { version = "0.22.0", features = [
    "esp32c3",
-   "async",
    "log",
-   "embedded-hal",
-   "embedded-hal-02",
-   "embedded-io",
 ] }
 
 
-esp-hal-embassy = { version = "0.3.0", features = [
+esp-hal-embassy = { version = "0.5.0", features = [
     "esp32c3",            # Compatible with all chips
 ] }
 
@@ -60,6 +56,21 @@ embedded-hal-bus = { version = "0.2.0", features = ["async"] }
 ssd1306-i2c = "0.1.5"
 esp-alloc = "0.4.0"
 ina3221 = { git = "https://github.com/leighleighleigh/ina3221", version = "0.4.5" }
+ws2812-spi = { version = "0.5.0", features = ["mosi_idle_high"] }
+embedded-io-async = "0.6.1"
+embedded-io = "0.6.1"
+
+[dependencies.quadrature-decoder]
+# quadrature-decoder = "0.2.0"
+git = "https://github.com/leighleighleigh/quadrature"
+branch = "embassy-mock-example"
+
+[dependencies.quadrature-encoder]
+# quadrature-encoder = "0.2.0"
+git = "https://github.com/leighleighleigh/quadrature"
+branch = "embassy-mock-example"
+# path = "/home/leigh/Git/quadrature-rebased/quadrature-encoder"
+# path = "/home/leigh/Git/quadrature/quadrature-encoder"
 
 [profile.release]
 debug = false

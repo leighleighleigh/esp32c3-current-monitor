@@ -6,7 +6,24 @@ in
 pkgs.mkShell rec {
     name = "esp-rs-nix";
 
-    buildInputs = [ esp-rs pkgs.rustup pkgs.espflash pkgs.rust-analyzer pkgs.pkg-config pkgs.stdenv.cc pkgs.bacon pkgs.systemdMinimal pkgs.just pkgs.lunarvim pkgs.duckdb pkgs.gnuplot pkgs.inotify-tools ];
+    buildInputs = [
+      esp-rs
+      pkgs.rustup
+      pkgs.espflash
+      pkgs.rust-analyzer
+      pkgs.pkg-config
+      pkgs.stdenv.cc
+      pkgs.bacon
+      pkgs.systemdMinimal
+      pkgs.just
+      pkgs.lunarvim
+      pkgs.duckdb
+      pkgs.gnuplot
+      pkgs.inotify-tools
+      # for .vcd file plotting
+      pkgs.dwfv
+      pkgs.gtkwave
+    ];
 
     shellHook = ''
     # this is important - it tells rustup where to find the esp toolchain,
