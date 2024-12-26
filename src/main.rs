@@ -94,7 +94,7 @@ async fn main(spawner: Spawner) {
 
     // hello world printer
     // spawner.spawn(run()).ok();
-    let mut ticker = Ticker::every(Duration::from_millis(100));
+    let mut ticker = Ticker::every(Duration::from_millis(50));
 
     let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
 
@@ -128,6 +128,11 @@ async fn main(spawner: Spawner) {
     let text_style_title = MonoTextStyleBuilder::new()
         .font(&FONT_9X18_BOLD)
         .text_color(BinaryColor::Off)
+        .build();
+
+    let text_style_mode= MonoTextStyleBuilder::new()
+        .font(&FONT_9X18_BOLD)
+        .text_color(BinaryColor::On)
         .build();
 
     let text_style = TextStyleBuilder::new()
@@ -276,6 +281,23 @@ async fn main(spawner: Spawner) {
             avg_mode = next_mode(avg_mode);
             esp_println::println!("mode: {:?}", avg_mode);
             ina.set_averaging_mode(avg_mode).unwrap();
+
+            // Display the mode on screen
+            display.clear();
+            let fmtMode = format!(
+                "{:?}",
+                avg_mode
+            );
+            let modeText = Text::with_text_style(
+                &fmtMode,
+                Point::new(64,32),
+                text_style_mode,
+                text_style,
+            );
+            display.fill_solid(&modeText.bounding_box(), BinaryColor::Off).unwrap();
+            modeText.draw(&mut display).unwrap();
+            display.flush().unwrap();
+
             Timer::after_millis(500).await;
         }
 
