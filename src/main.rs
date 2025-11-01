@@ -9,9 +9,12 @@
 #![no_std]
 #![no_main]
 #![feature(type_alias_impl_trait)]
+#![feature(impl_trait_in_assoc_type)]
 #![feature(const_trait_impl)]
 
-const INA3221_I2C_ADDR: u8 = 0x41;
+const INA3221_I2C_ADDR: u8 = 0x40;
+// const INA3221_I2C_ADDR: u8 = 0x41;
+// const INA3221_I2C_ADDR: u8 = 0x41;
 // const SHUNT_RESISTANCE: f32 = 0.1f32; // 0.1 Ohm
 
 extern crate alloc;
@@ -38,23 +41,23 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use esp_alloc as _;
 use esp_backtrace as _;
-use esp_hal as hal;
+use esp_hal::{self as hal, gpio::{Input, InputConfig}, time::Rate};
 
 use hal::{
     analog::adc::{Adc, AdcConfig, AdcPin, Attenuation},
-    clock::{ClockControl,CpuClock},
-    gpio::{AnalogPin, AnyInput, Io},
-    i2c::I2C,
+    clock::{CpuClock},
+    gpio::{AnalogPin, Io},
     peripherals::{Peripherals, I2C0},
-    prelude::*,
-    system::SystemControl,
     timer::timg::TimerGroup,
-    timer::systimer::{SystemTimer, Target},
+    timer::systimer::{SystemTimer},
 };
 
 use core::mem::MaybeUninit;
 
 use ssd1306_i2c::{prelude::*, Builder}; // was use sh1106:: ...
+use esp_bootloader_esp_idf::esp_app_desc;
+
+esp_app_desc!();
 
 //#[global_allocator]
 //static ALLOCATOR: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
@@ -72,48 +75,51 @@ fn average(numbers: &[i32]) -> f32 {
     numbers.iter().sum::<i32>() as f32 / numbers.len() as f32
 }
 
-#[main]
+#[esp_rtos::main]
 async fn main(spawner: Spawner) {
     esp_println::println!("Init!");
     esp_println::logger::init_logger(log::LevelFilter::Info);
 
     //init_heap();
-    let peripherals = Peripherals::take();
-    let system = SystemControl::new(peripherals.SYSTEM);
-    let clocks = ClockControl::configure(system.clock_control,CpuClock::Clock80MHz).freeze();
+    let hal_config = hal::Config::default().with_cpu_clock(hal::clock::CpuClock::max());
+    let peripherals = hal::init(hal_config);
 
-    esp_alloc::heap_allocator!(72 * 1024);
+    esp_alloc::heap_allocator!(size: 72*1024);
   
-    //let timg0 = TimerGroup::new(peripherals.TIMG0, &clocks);
-    //esp_hal_embassy::init(&clocks, timers);
-    let timg0 = TimerGroup::new(peripherals.TIMG0, &clocks);
-    esp_hal_embassy::init(&clocks, timg0.timer0);
+    let sw_ints = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    esp_rtos::start(timg0.timer0,sw_ints.software_interrupt0);
 
-    //let systimer = SystemTimer::new(peripherals.SYSTIMER).split::<Target>();
-    //esp_hal_embassy::init(&clocks, systimer.alarm0);
+    // let sw_ints = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    // let systimer = SystemTimer::new(peripherals.SYSTIMER);
+    // esp_rtos::start(systimer.alarm0);
+    // Multi-priority init
+    // let timg0 = TimerGroup::new(peripherals.TIMG0);
+    // let timer0: AnyTimer = timg0.timer0.into();
+    // let timg1 = TimerGroup::new(peripherals.TIMG1);
+    // let timer1: AnyTimer = timg1.timer0.into();
+    // esp_rtos::init([timer0]);
+    // static EXECUTOR: StaticCell<InterruptExecutor<2>> = StaticCell::new();
+    // let executor = InterruptExecutor::new(sw_ints.software_interrupt2);
+    // let executor = EXECUTOR.init(executor);
+    // let high_prio_spawner = executor.start(Priority::Priority3);
 
     // hello world printer
-    // spawner.spawn(run()).ok();
     let mut ticker = Ticker::every(Duration::from_millis(50));
 
-    let io = Io::new(peripherals.GPIO, peripherals.IO_MUX);
-
     // get a random inptu to use for adc
-    let analog_pin = io.pins.gpio3;
+    let analog_pin = peripherals.GPIO3;
     let mut adc1_config = AdcConfig::new();
-    let mut adc1_pin = adc1_config.enable_pin(analog_pin, Attenuation::Attenuation11dB);
+    let mut adc1_pin = adc1_config.enable_pin(analog_pin, Attenuation::_11dB);
     let mut adc1 = Adc::new(peripherals.ADC1, adc1_config);
 
     // setup boot gpio0 pin as input
-    let mode_pin = AnyInput::new(io.pins.gpio9, hal::gpio::Pull::None);
+    let mode_pin = Input::new(peripherals.GPIO9, InputConfig::default());
 
-    let i2c0 = I2C::new(
+    let i2c0 = hal::i2c::master::I2c::new(
         peripherals.I2C0,
-        io.pins.gpio6,
-        io.pins.gpio7,
-        400.kHz(),
-        &clocks,
-    );
+        hal::i2c::master::Config::default().with_frequency(Rate::from_khz(400))
+    ).unwrap().with_scl(peripherals.GPIO7).with_sda(peripherals.GPIO6);
 
     let i2c_ref_cell = RefCell::new(i2c0);
 
