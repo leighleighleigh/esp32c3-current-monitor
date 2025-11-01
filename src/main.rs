@@ -118,7 +118,7 @@ async fn main(spawner: Spawner) {
 
     let i2c0 = hal::i2c::master::I2c::new(
         peripherals.I2C0,
-        hal::i2c::master::Config::default().with_frequency(Rate::from_khz(400))
+        hal::i2c::master::Config::default().with_frequency(Rate::from_khz(800))
     ).unwrap().with_scl(peripherals.GPIO7).with_sda(peripherals.GPIO6);
 
     let i2c_ref_cell = RefCell::new(i2c0);
@@ -259,7 +259,12 @@ async fn main(spawner: Spawner) {
     // Current monitor
     let mut ina = INA3221::new(i2c::RefCellDevice::new(&i2c_ref_cell), INA3221_I2C_ADDR);
     Timer::after_millis(100).await;
-    ina.set_averaging_mode(ina3221::AveragingMode::Samples4).unwrap();
+
+    // Raw samples
+    ina.set_averaging_mode(ina3221::AveragingMode::Samples1).unwrap();
+    ina.set_bus_conversion_time(ina3221::ConversionTime::us8244).ok();
+    ina.set_shunt_conversion_time(ina3221::ConversionTime::us8244).ok();
+
     Timer::after_millis(100).await;
     let channel = 0;
 
@@ -276,8 +281,14 @@ async fn main(spawner: Spawner) {
 
     let mut avg_mode = AveragingMode::Samples1;
 
+    esp_println::println!("time,volt,current");
+
+    let draw_to_lcd : bool = true;
+
     loop {
-        Timer::after_millis(10).await;
+        if draw_to_lcd {
+          Timer::after_millis(10).await;
+        }
 
         // if button is pressed, clear the vecs
         if mode_pin.is_low() {
@@ -285,7 +296,7 @@ async fn main(spawner: Spawner) {
             shuntvolt = vec![0; 128];
             // change sampling mode
             avg_mode = next_mode(avg_mode);
-            esp_println::println!("mode: {:?}", avg_mode);
+            // esp_println::println!("mode: {:?}", avg_mode);
             ina.set_averaging_mode(avg_mode).unwrap();
 
             // Display the mode on screen
@@ -320,6 +331,10 @@ async fn main(spawner: Spawner) {
                     shunt_voltage.milli_volts(),
                     avg_shuntvolt,
                 );
+
+                if !draw_to_lcd {
+                    continue;
+                }
 
 
                 // append to the rolling bar graph
