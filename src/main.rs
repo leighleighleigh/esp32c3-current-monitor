@@ -126,8 +126,8 @@ async fn main(spawner: Spawner) {
     // create and ssd1306-i2c instance using builder
     let mut display: GraphicsMode<_> = Builder::new()
         .with_size(DisplaySize::Display128x64NoOffset)
-        .with_i2c_addr(0x3c) // your LCD may used 0x3c the primary address
-        .with_rotation(DisplayRotation::Rotate0)
+        .with_i2c_addr(0x3c) // your LCD may used 0x3c the primary address, or 0x3d
+        .with_rotation(DisplayRotation::Rotate180)
         .connect_i2c(i2c::RefCellDevice::new(&i2c_ref_cell))
         .into();
 
@@ -266,7 +266,7 @@ async fn main(spawner: Spawner) {
     ina.set_shunt_conversion_time(ina3221::ConversionTime::us8244).ok();
 
     Timer::after_millis(100).await;
-    let channel = 0;
+    let channel = 2;
 
     // data channels, rolling bar graph
     let mut busvolt: Vec<i32> = vec![0; 128];
