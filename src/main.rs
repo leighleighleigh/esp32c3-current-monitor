@@ -34,7 +34,7 @@ use embedded_graphics::{
     geometry::AnchorY, image::Image, mock_display::ColorMapping, mono_font::{
         ascii::{FONT_10X20, FONT_4X6, FONT_5X7, FONT_6X10, FONT_6X13_BOLD, FONT_7X13, FONT_9X15_BOLD, FONT_9X18_BOLD},
         MonoTextStyleBuilder,
-    }, pixelcolor::{BinaryColor, Rgb565}, prelude::*, primitives::Rectangle, text::{Alignment, Baseline, LineHeight, Text, TextStyleBuilder}
+    }, pixelcolor::{BinaryColor, Rgb565}, prelude::*, primitives::{Rectangle,PrimitiveStyle,Line}, text::{Alignment, Baseline, LineHeight, Text, TextStyleBuilder}
 };
 
 use embassy_executor::Spawner;
@@ -172,7 +172,7 @@ async fn main(spawner: Spawner) {
     display.init().unwrap();
     display.flush().unwrap();
     display.clear();
-    display.set_contrast(1).unwrap();
+    display.set_contrast(1).unwrap(); // Doesnt do much
 
     ticker.next().await;
 
@@ -262,8 +262,8 @@ async fn main(spawner: Spawner) {
 
     // Raw samples
     ina.set_averaging_mode(ina3221::AveragingMode::Samples1).unwrap();
-    ina.set_bus_conversion_time(ina3221::ConversionTime::us8244).ok();
-    ina.set_shunt_conversion_time(ina3221::ConversionTime::us8244).ok();
+    ina.set_bus_conversion_time(ina3221::ConversionTime::us140).ok();
+    ina.set_shunt_conversion_time(ina3221::ConversionTime::us140).ok();
 
     Timer::after_millis(100).await;
     let channel = 2;
@@ -287,7 +287,7 @@ async fn main(spawner: Spawner) {
 
     loop {
         if draw_to_lcd {
-          Timer::after_millis(10).await;
+          Timer::after_millis(1).await;
         }
 
         // if button is pressed, clear the vecs
@@ -383,16 +383,37 @@ async fn main(spawner: Spawner) {
                         .min(bar_height - padding);
                 }
 
-                //draw lines
-                for i in 0..128 {
-                    for height in 0..voltage_bar_data[i] {
-                        display.set_pixel(i as u32, 32 - height as u32, 1);
-                    }
-                    for height in 0..shunt_bar_data[i] {
-                        display.set_pixel(i as u32, 64 - height as u32, 1);
-                    }
-                    // display.set_pixel(i as u32, 32 - voltage_bar_data[i] as u32, 1);
-                    // display.set_pixel(i as u32, 64 - shunt_bar_data[i] as u32, 1);
+                //draw lines!
+                let mut yV = (32 - voltage_bar_data[0]) as u32;
+                let mut yA = (64 - shunt_bar_data[0]) as u32;
+
+                for x in 1..128 { //width
+                    let _yV = 32 - voltage_bar_data[x] as u32;
+                    let _yA = 64 - shunt_bar_data[x] as u32;
+
+                    // display.set_pixel(x as u32, 64 - shunt_bar_data[x] as u32, 1);
+
+                    // Draw line from last point to the next point!
+                    Line::new(Point::new((x-1) as i32,yV as i32), Point::new(x as i32, _yV as i32))
+                        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+                        .draw(&mut display).unwrap();
+
+                    Line::new(Point::new((x-1) as i32,yA as i32), Point::new(x as i32, _yA as i32))
+                        .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
+                        .draw(&mut display).unwrap();
+
+                    yV = _yV;
+                    yA = _yA;
+
+                    // for height in 0..voltage_bar_data[i] {
+                    //     display.set_pixel(i as u32, 32 - height as u32, 1);
+                    // }
+                    // for height in 0..shunt_bar_data[i] {
+                    //     display.set_pixel(i as u32, 64 - height as u32, 1);
+                    // }
+                    // LINE! or whatever.
+                    // display.set_pixel(x as u32, 32 - voltage_bar_data[x] as u32, 1);
+                    // display.set_pixel(x as u32, 64 - shunt_bar_data[x] as u32, 1);
                 }
 
                 let leftPad = 8; 

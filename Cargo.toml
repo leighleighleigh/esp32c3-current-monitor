@@ -47,8 +47,14 @@ ina3221 = { git = "https://github.com/leighleighleigh/ina3221", version = "0.4.5
 nb = "1.1.0"
 
 [profile.release]
+#debug = false
+#opt-level = 3
 debug = false
-opt-level = 3
+#strip = true 
+strip = "debuginfo"
+opt-level = "s" # size is an important factor in the ULP code,  because it's easy to run out of space.
+codegen-units = 1 # LLVM can perform better optimizations using a single thread
+lto = true
 
 [profile.dev]
 opt-level = 0
